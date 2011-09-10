@@ -1,0 +1,8 @@
+/blib
+/_build
+/Build
+/MANIFEST*
+/META*
+/MYMETA*
+/pod2*
+/Text-TNetstrings-*
