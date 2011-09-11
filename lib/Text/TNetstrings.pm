@@ -109,7 +109,6 @@ sub decode_tnetstrings {
 
 	$data = substr($rest, 0, $length);
 	$type = substr($rest, $length, 1);
-	croak("invalid type '$type'") unless $type =~ m/^[,#^!~}\]]$/;
 	$rest = substr($rest, $length + 1) if wantarray && length($rest) >= $length + 1;
 
 	for($type) {
