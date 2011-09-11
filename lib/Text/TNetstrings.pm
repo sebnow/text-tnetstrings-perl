@@ -112,27 +112,27 @@ sub decode_tnetstrings {
 	$rest = substr($rest, $length + 1) if wantarray && length($rest) >= $length + 1;
 
 	for($type) {
-		/,/ and do {
+		"," eq $_ and do {
 			$decoded = $data;
 			last;
 		};
-		/#/ and do {
+		"#" eq $_ and do {
 			$decoded = int($data);
 			last;
 		};
-		/\^/ and do {
+		"^" eq $_ and do {
 			$decoded = $data;
 			last;
 		};
-		/!/ and do {
+		"!" eq $_ and do {
 			$decoded = $data eq 'true';
 			last;
 		};
-		/~/ and do {
+		"~" eq $_ and do {
 			$decoded = undef;
 			last;
 		};
-		/}/ and do {
+		"}" eq $_ and do {
 			$decoded = {};
 			my $ss = $data;
 			do {
@@ -143,7 +143,7 @@ sub decode_tnetstrings {
 			} while(defined($ss) && $ss ne '');
 			last;
 		};
-		/]/ and do {
+		"]" eq $_ and do {
 			$decoded = [];
 			my $ss = $data;
 			do {
