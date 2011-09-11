@@ -60,7 +60,7 @@ Encode a scalar, hash or array into TNetstring format.
 =cut
 
 sub encode_tnetstrings {
-	my ($data) = @_;
+	my $data = shift;
 	my ($encoded, $type);
 
 	if(ref($data) eq "ARRAY") {
@@ -100,9 +100,9 @@ Decode TNetstring data into the appropriate scalar, hash or array.
 =cut
 
 sub decode_tnetstrings {
-	my ($encoded) = @_;
-	my ($decoded, $length, $data, $type, $rest);
+	my $encoded = shift;
 	return unless $encoded;
+	my ($decoded, $length, $data, $type, $rest);
 
 	($length, $rest) = split(':', $encoded, 2);
 	$length = int($length);
