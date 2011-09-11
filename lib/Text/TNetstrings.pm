@@ -3,7 +3,6 @@ package Text::TNetstrings;
 use 5.010;
 use strict;
 use warnings;
-use feature 'switch';
 use Carp qw(croak);
 use base qw(Exporter);
 
