@@ -104,12 +104,13 @@ sub decode_tnetstrings {
 	return unless $encoded;
 	my ($decoded, $length, $data, $type, $rest);
 
-	($length, $rest) = split(':', $encoded, 2);
-	$length = int($length);
+	my $length_end = index($encoded, ":");
+	$length = substr($encoded, 0, $length_end);
 
-	$data = substr($rest, 0, $length);
-	$type = substr($rest, $length, 1);
-	$rest = substr($rest, $length + 1) if wantarray && length($rest) >= $length + 1;
+	my $offset = $length_end + 1;
+	$data = substr($encoded, $offset, $length);
+	$offset += $length;
+	$type = substr($encoded, $offset, 1);
 
 	for($type) {
 		"," eq $_ and do {
@@ -156,7 +157,11 @@ sub decode_tnetstrings {
 		croak("type $type not supported");
 	}
 
-	return wantarray ? ($decoded, $rest) : $decoded;
+	if(wantarray()) {
+		$rest = substr($encoded, $offset + 1) if length($encoded) > $offset;
+		return ($decoded, $rest);
+	}
+	return $decoded;
 }
 
 =head1 AUTHOR
