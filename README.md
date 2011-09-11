@@ -25,6 +25,14 @@ Pure-Perl JSON module (version 2.27105).
 	TNetstrings  1017/s         46%          --        -96%
 	JSON::XS    27248/s       3824%       2578%          --
 
+Similarly the Pure-Perl version of Data::Dumper performs about twice as
+slow as TNetstrings.
+
+	$ perl -Ilib benchmark/dumper.pl
+	              Rate      Dumper TNetstrings
+	Dumper       690/s          --        -36%
+	TNetstrings 1080/s         56%          --
+
 
 Installation
 ============
