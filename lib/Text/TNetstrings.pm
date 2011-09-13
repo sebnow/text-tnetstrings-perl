@@ -12,11 +12,11 @@ Text::TNetstrings - Data serialization using typed netstrings.
 
 =head1 VERSION
 
-Version 0.1.0
+Version 1.0.1
 
 =cut
 
-use version 0.77; our $VERSION = version->declare("v1.0.0");
+use version 0.77; our $VERSION = version->declare("v1.0.1");
 
 =head1 SYNOPSIS
 
@@ -212,6 +212,23 @@ L<http://www.github.com/sebnow/text-tnetstrings-perl>
 
 =back
 
+=head1 CHANGES
+
+=head2 v1.0.1
+
+=over
+
+=item Performance improvements
+
+=back
+
+=head2 v1.0.0
+
+=over
+
+=item Initial release
+
+=back
 
 =head1 ACKNOWLEDGEMENTS
 
