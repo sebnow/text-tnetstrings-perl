@@ -89,7 +89,7 @@ sub encode_tnetstrings {
 	# between true/false and integers, strings, etc.  Boolean values
 	# will simply be represented as whatever the underlying type is
 	# (integer, string, undefined).
-	return sprintf("%d:%s%c", length($encoded), $encoded, ord($type));
+	return join('', length($encoded), ':', $encoded, $type);
 }
 
 =head2 decode_tnetstrings($string)
