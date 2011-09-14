@@ -15,61 +15,77 @@ enum tn_type {
 	tn_type_null       = '~',
 };
 
-static STRLEN int_length(IV i);
-static void tn_encode(SV *data, SV *encoded);
+struct tn_buffer {
+	SV *sv;
+	size_t size;
+	char *start;
+	char *cursor;
+};
+
+static void tn_encode(SV *data, struct tn_buffer *buf);
+static void tn_encode_array(SV *data, struct tn_buffer *buf);
+static void tn_encode_hash(SV *data, struct tn_buffer *buf);
+/* Initialize structure */
+static int tn_buffer_init(struct tn_buffer *buf, size_t size);
+/* Prepend character at the beginning of the buffer */
+static int tn_buffer_putc(struct tn_buffer *buf, char);
+/* Prepend string at the beginning of the buffer */
+static int tn_buffer_puts(struct tn_buffer *buf, char *str, STRLEN len);
+/* Prepend number at the beginning of the buffer */
+static int tn_buffer_puti(struct tn_buffer *buf, size_t i);
+/* Allocate enough memory to accomodate an additional n bytes */
+static int tn_buffer_expand(struct tn_buffer *buf, size_t n);
+/* Return the length of the buffer */
+static STRLEN tn_buffer_length(struct tn_buffer *buf);
+/* Finalize the buffer and return the resulting scalar. This will move
+ * the string from the end of the buffer to the beginning, resulting in
+ * a "normal" string.
+ *
+ * If len is not null it will be set to the length of the resulting
+ * string.
+ *
+ * The buffer becomes invalid.
+ */
+static SV *tn_buffer_finalize(struct tn_buffer *buf, STRLEN *len);
+/* Free the structure */
+static void tn_buffer_free(struct tn_buffer *buf);
 
 static void
-tn_encode(SV *data, SV *encoded)
+tn_encode(SV *data, struct tn_buffer *buf)
 {
-	SV *sv;
-	HE *entry;
-	I32 len;
-	I32 i;
+	size_t init_length = tn_buffer_length(buf) + 1;
 
 	/* Null */
 	if(!SvOK(data)) {
-		sv_catpv(encoded, "0:~");
+		tn_buffer_puts(buf, "0:~", 3);
+		return;
 	}
 	/* Integer */
 	else if(SvIOK(data)) {
-		sv_catpvf(encoded, "%zu:%s#", SvCUR(data), SvPV_nolen(data));
+		tn_buffer_putc(buf, tn_type_integer);
+		tn_buffer_puts(buf, SvPV_nolen(data), strlen(SvPV_nolen(data)));
 	}
 	/* Floating point */
 	else if(SvNOK(data)) {
-		sv_catpvf(encoded, "%zu:%s^", SvCUR(data), SvPV_nolen(data));
+		tn_buffer_putc(buf, tn_type_float);
+		tn_buffer_puts(buf, SvPV_nolen(data), strlen(SvPV_nolen(data)));
 	}
 	/* String */
 	else if(SvPOK(data)) {
-		sv_catpvf(encoded, "%zu:%s,", SvCUR(data), SvPV_nolen(data));
+		tn_buffer_putc(buf, tn_type_bytestring);
+		tn_buffer_puts(buf, SvPV_nolen(data), strlen(SvPV_nolen(data)));
 	}
 	/* Reference (Hash/Array) */
 	else if(SvROK(data)) {
 		data = SvRV(data);
 		switch(SvTYPE(data)) {
 			case SVt_PVAV:
-				len = av_len((AV *)data) + 1;
-				sv = newSV(INIT_SIZE);
-				sv_setpv(sv, "");
-				for(i = 0; i < len; i++) {
-					tn_encode(*av_fetch((AV *)data, i, 0), sv);
-				}
-				sv_catpvf(encoded, "%zu:%s]", SvCUR(sv), SvPV_nolen(sv));
-				sv_free(sv);
-				sv = NULL;
+				tn_buffer_putc(buf, tn_type_array);
+				tn_encode_array(data, buf);
 				break;
 			case SVt_PVHV:
-				hv_iterinit((HV *)data);
-				sv = newSV(INIT_SIZE);
-				sv_setpv(sv, "");
-				while(entry = hv_iternext((HV *)data)) {
-					SV *key = hv_iterkeysv(entry);
-					SvPOK_on(key);
-					tn_encode(key, sv);
-					tn_encode(hv_iterval((HV *)data, entry), sv);
-				}
-				sv_catpvf(encoded, "%zu:%s}", SvCUR(sv), SvPV_nolen(sv));
-				sv_free(sv);
-				sv = NULL;
+				tn_buffer_putc(buf, tn_type_hash);
+				tn_encode_hash(data, buf);
 				break;
 			default:
 				croak("encountered %s (%s), but TNetstrings can only represent references to arrays or hashes",
@@ -78,6 +94,36 @@ tn_encode(SV *data, SV *encoded)
 	} else {
 		croak("support for type (%s, %s) not implemented, please file a bug",
 			sv_reftype(data, 0), SvPV_nolen(data));
+	}
+	tn_buffer_putc(buf, ':');
+	tn_buffer_puti(buf, tn_buffer_length(buf) - init_length - 1);
+}
+
+static void
+tn_encode_array(SV *data, struct tn_buffer *buf)
+{
+	AV *array = (AV *)data;
+	I32 len = av_len(array) + 1;
+	I32 i;
+
+	for(i = len - 1; i >= 0; --i) {
+		tn_encode(*av_fetch(array, i, 0), buf);
+	}
+}
+
+static void
+tn_encode_hash(SV *data, struct tn_buffer *buf)
+{
+	HV *hash = (HV *)data;
+	HE *entry;
+	SV *key;
+
+	hv_iterinit(hash);
+	while(entry = hv_iternext(hash)) {
+		key = hv_iterkeysv(entry);
+		SvPOK_on(key);
+		tn_encode(hv_iterval(hash, entry), buf);
+		tn_encode(key, buf);
 	}
 }
 
@@ -190,6 +236,105 @@ tn_decode(char *encoded, char **rest)
 	return decoded;
 }
 
+static int
+tn_buffer_init(struct tn_buffer *buf, size_t size)
+{
+	assert(buf);
+	buf->sv = newSV(size);
+	if(!buf->sv) {
+		return 0;
+	}
+	SvPOK_only(buf->sv);
+	buf->start = SvPVX(buf->sv);
+	buf->cursor = buf->start + size;
+	*buf->cursor = '\0';
+	buf->size = size;
+	return 1;
+}
+
+static int
+tn_buffer_expand(struct tn_buffer *buf, size_t n)
+{
+	struct tn_buffer old;
+	STRLEN length;
+	assert(buf);
+	assert(buf->cursor <= buf->start && "buffer overflow");
+	if(buf->cursor - buf->start < n) {
+		Move(buf, &old, 1, old);
+		length = tn_buffer_length(buf);
+
+		buf->size = old.size * 2;
+		while(buf->size < old.size + n) {
+			buf->size *= 2;
+		}
+
+		tn_buffer_init(buf, buf->size);
+		buf->cursor = buf->start + buf->size - length;
+		Move(old.cursor, buf->cursor, length, *buf->cursor);
+		sv_free(old.sv);
+	}
+}
+
+static STRLEN
+tn_buffer_length(struct tn_buffer *buf)
+{
+	return buf->size - (buf->cursor - buf->start);
+}
+
+static int
+tn_buffer_putc(struct tn_buffer *buf, char ch)
+{
+	assert(buf);
+	tn_buffer_expand(buf, 1);
+	buf->cursor--;
+	*buf->cursor = ch;
+	return 1;
+}
+
+static int
+tn_buffer_puti(struct tn_buffer *buf, size_t i)
+{
+	assert(buf);
+	do {
+		tn_buffer_putc(buf, (i % 10) + '0');
+		i = i / 10;
+	} while(i > 0);
+	return 1;
+}
+
+static int
+tn_buffer_puts(struct tn_buffer *buf, char *str, STRLEN len)
+{
+	assert(buf);
+	if(len <= 0) {
+		len = strlen(str);
+	}
+	tn_buffer_expand(buf, len);
+	buf->cursor -= len;
+	Move(str, buf->cursor, len, *str);
+	return len;
+}
+
+static SV *
+tn_buffer_finalize(struct tn_buffer *buf, STRLEN *len)
+{
+	size_t length = tn_buffer_length(buf);
+	Move(buf->cursor, buf->start, length, *buf->start);
+	buf->start[length] = '\0';
+	if(len != NULL) {
+		*len = length;
+	}
+	return newSVpvn(buf->start, length);
+}
+
+static void
+tn_buffer_free(struct tn_buffer *buf)
+{
+	assert(buf);
+	sv_free(buf->sv);
+	buf->sv = NULL;
+}
+
 /* XSUBS */
 MODULE = Text::TNetstrings::XS PACKAGE = Text::TNetstrings::XS PREFIX=TN_
 
@@ -197,12 +342,14 @@ SV *
 TN_encode_tnetstrings(data)
 	SV *data
 	PREINIT:
-		SV *encoded = newSV(INIT_SIZE);
+		struct tn_buffer buffer;
+		SV *encoded;
 	CODE:
 	{
-		sv_setpv(encoded, "");
-		SvPOK_only(encoded);
-		tn_encode(data, encoded);
+		tn_buffer_init(&buffer, INIT_SIZE);
+		tn_encode(data, &buffer);
+		encoded = tn_buffer_finalize(&buffer, NULL);
+		tn_buffer_free(&buffer);
 		RETVAL = encoded;
 	}
 	OUTPUT:
