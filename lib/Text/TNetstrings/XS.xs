@@ -5,6 +5,16 @@
 
 const STRLEN INIT_SIZE = 32;
 
+enum tn_type {
+	tn_type_array      = ']',
+	tn_type_bool       = '!',
+	tn_type_bytestring = ',',
+	tn_type_float      = '^',
+	tn_type_hash       = '}',
+	tn_type_integer    = '#',
+	tn_type_null       = '~',
+};
+
 static STRLEN int_length(IV i);
 static void tn_encode(SV *data, SV *encoded);
 
@@ -87,7 +97,7 @@ tn_decode(char *encoded, char **rest)
 	STRLEN length = 0;
 	char *cursor = encoded;
 	char *end = NULL;
-	char type;
+	enum tn_type type;
 
 	if(*cursor > '9' || '0' > *cursor) {
 		croak("expected number but got \"%s\"", cursor);
@@ -120,7 +130,7 @@ tn_decode(char *encoded, char **rest)
 
 	/* Everything in between is the body */
 	switch(type) {
-		case ']': /* Array */
+		case tn_type_array:
 			decoded = newRV_noinc((SV *)newAV());
 			while(cursor != NULL && cursor <= end) {
 				SV *elem = tn_decode(cursor, &cursor);
@@ -131,7 +141,7 @@ tn_decode(char *encoded, char **rest)
 				}
 			}
 			break;
-		case '!': /* Boolean */
+		case tn_type_bool:
 			if(strcmp(cursor, "true") == 0) {
 				decoded = newSViv(1);
 			} else if(strcmp(cursor, "false") == 0) {
@@ -140,10 +150,10 @@ tn_decode(char *encoded, char **rest)
 				croak("expected \"true\" or \"false\" but got \"%s\"", cursor);
 			}
 			break;
-		case '^': /* Float */
+		case tn_type_float:
 			decoded = newSVnv(atof(cursor));
 			break;
-		case '}': /* Hash */
+		case tn_type_hash:
 			decoded = newRV_noinc((SV *)newHV()); // TODO
 			while(cursor != NULL && cursor <= end) {
 				SV *key = tn_decode(cursor, &cursor);
@@ -165,13 +175,13 @@ tn_decode(char *encoded, char **rest)
 				SvREFCNT_dec(key);
 			}
 			break;
-		case '~': /* Null */
+		case tn_type_null:
 			decoded = &PL_sv_undef;
 			break;
-		case '#': /* Number */
+		case tn_type_integer:
 			decoded = newSViv(atoi(cursor));
 			break;
-		case ',': /* String */
+		case tn_type_bytestring:
 			decoded = newSVpvn(cursor, end - cursor);
 			break;
 		default:
