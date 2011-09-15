@@ -9,11 +9,11 @@ Text::TNetstrings - Data serialization using typed netstrings.
 
 =head1 VERSION
 
-Version 1.0.1
+Version 1.1.0
 
 =cut
 
-use version 0.77; our $VERSION = version->declare("v1.0.1");
+use version 0.77; our $VERSION = version->declare("v1.1.0");
 
 =head1 SYNOPSIS
 
