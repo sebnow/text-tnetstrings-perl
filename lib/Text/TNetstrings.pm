@@ -104,7 +104,10 @@ Encode a scalar, hash or array into TNetstring format.
 
 =head2 decode_tnetstrings($string)
 
-Decode TNetstring data into the appropriate scalar, hash or array.
+Decode TNetstring data into the appropriate scalar, hash or array. In
+array context the remainder of the string will also be returned, e.g.:
+
+	my ($data, $rest) = decode_tnetstrings("0:~foo"); #=> (undef, "foo")
 
 B<Note:> Due to Perl not having a boolean data type, booleans are
 decoded as integers (1/0).
