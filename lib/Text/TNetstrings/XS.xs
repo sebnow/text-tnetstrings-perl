@@ -188,9 +188,9 @@ tn_decode(char *encoded, char **rest)
 			break;
 		case tn_type_bool:
 			if(strcmp(cursor, "true") == 0) {
-				decoded = newSViv(1);
+				decoded = &PL_sv_yes;
 			} else if(strcmp(cursor, "false") == 0) {
-				decoded = newSViv(0);
+				decoded = &PL_sv_no;
 			} else {
 				croak("expected \"true\" or \"false\" but got \"%s\"", cursor);
 			}
