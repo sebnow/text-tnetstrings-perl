@@ -140,34 +140,33 @@ tn_decode(char *encoded, char **rest)
 {
 	SV *decoded = NULL;;
 	STRLEN byte_length = 0;
-	STRLEN length = 0;
+	STRLEN length = strlen(encoded);
 	char *cursor = encoded;
-	char *end = NULL;
+	char *end = cursor;
 	enum tn_type type;
 
-	if(*cursor > '9' || '0' > *cursor) {
-		croak("expected number but got \"%s\"", cursor);
+	/* Parse the size prefix */
+	errno = 0;
+	byte_length = strtol(cursor, &end, 10);
+	if(errno == ERANGE) {
+		croak("absurdly large size prefix");
+	} else if(byte_length == 0 && end == cursor) {
+		croak("expected size prefix but got \"%s\"", cursor);
+	} else if(*end != ':') {
+		croak("expected ':' but got \"%s\"", end);
 	}
 
-	/* Find the end of the length field */
-	end = strchr(cursor, ':');
-	if(end == NULL) {
-		croak("expected ':'");
-	}
-	*end = '\0';
-	byte_length = atoi(cursor);
-	/* Find boundry of body */
-	cursor = end + 1;
-	length = strlen(cursor) - 1; /* Ignore type indicator */
-	if(byte_length > length) {
-		croak("expected %d bytes but got %d: \"%s\"", byte_length, length);
+	/* Check if string is truncated */
+	if(byte_length + (end - encoded) + 1 > length) {
+		croak("expected at least %d bytes but got %d: \"%s\"", byte_length, length);
 	}
 	/* Find and terminate type indicator */
+	cursor = end + 1;
 	end = cursor + byte_length;
 	type = *end;
 	*end = '\0';
 	if(rest != NULL) {
-		if(length > byte_length) {
+		if(length > end - encoded + 1) {
 			*rest = end + 1;
 		} else {
 			*rest = NULL;

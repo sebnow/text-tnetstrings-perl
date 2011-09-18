@@ -10,7 +10,7 @@ my $builder = Module::Build->new(
 	extra_linker_flags   => ['-lm'],
 	configure_requires => {
 		'version' => '>=0.77',
-		'Module::Build' => '',
+		'Module::Build' => 0,
 	},
 	build_requires => {
 		'Test::More' => 0,
