@@ -77,7 +77,7 @@ tn_encode(SV *data, struct tn_buffer *buf)
 	/* String */
 	else if(SvPOK(data)) {
 		tn_buffer_putc(buf, tn_type_bytestring);
-		tn_buffer_puts(buf, SvPV_nolen(data), strlen(SvPV_nolen(data)));
+		tn_buffer_puts(buf, SvPVX(data), SvCUR(data));
 	}
 	/* Reference (Hash/Array) */
 	else if(SvROK(data)) {
