@@ -215,7 +215,7 @@ tn_decode(char *encoded, char **rest)
 				 * refcount must be decremented if storing fails. The
 				 * key's refcount must always be decremented. */
 				if(!hv_store_ent((HV *)SvRV(decoded), key, value, 0)) {
-					SvREFCNT_dec(decoded);
+					SvREFCNT_dec(value);
 				}
 				SvREFCNT_dec(key);
 			}
