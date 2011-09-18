@@ -66,13 +66,19 @@ tn_encode(SV *data, struct tn_buffer *buf)
 	}
 	/* Integer */
 	else if(SvIOK(data)) {
+		/* The evaluatioin order of arguments isn't defined, so
+		 * stringify before calling tn_buffer_puts(). */
+		SvPV_nolen(data);
 		tn_buffer_putc(buf, tn_type_integer);
-		tn_buffer_puts(buf, SvPV_nolen(data), strlen(SvPV_nolen(data)));
+		tn_buffer_puts(buf, SvPVX(data), SvCUR(data));
 	}
 	/* Floating point */
 	else if(SvNOK(data)) {
+		/* The evaluatioin order of arguments isn't defined, so
+		 * stringify before calling tn_buffer_puts(). */
+		SvPV_nolen(data);
 		tn_buffer_putc(buf, tn_type_float);
-		tn_buffer_puts(buf, SvPV_nolen(data), strlen(SvPV_nolen(data)));
+		tn_buffer_puts(buf, SvPVX(data), SvCUR(data));
 	}
 	/* String */
 	else if(SvPOK(data)) {
