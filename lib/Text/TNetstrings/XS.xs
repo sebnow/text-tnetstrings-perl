@@ -137,39 +137,50 @@ tn_encode_hash(SV *data, struct tn_buffer *buf)
 	}
 }
 
-static SV *
-tn_decode(char *const encoded, STRLEN length, char **rest)
+static char *
+tn_lex(char *const encoded, STRLEN length, STRLEN *plength, enum tn_type *type, char **rest)
 {
-	STRLEN payload_length = 0;
 	char *payload;
-	enum tn_type type;
+	assert(plength);
+	assert(type);
 
 	/* Parse the size prefix */
 	errno = 0;
-	payload_length = strtol(encoded, &payload, 10);
+	*plength = strtol(encoded, &payload, 10);
 	if(errno == ERANGE) {
 		croak("absurdly large size prefix");
-	} else if(payload_length == 0 && encoded == payload) {
+	} else if(*plength == 0 && encoded == payload) {
 		croak("expected size prefix but got \"%s\"", payload);
 	} else if(*payload != ':') {
 		croak("expected ':' but got \"%s\"", payload);
 	}
 	payload++;
 	/* Check if string is truncated */
-	if(payload + payload_length >= encoded + length) {
-		croak("expected at least %d bytes", payload_length);
+	if(payload + *plength >= encoded + length) {
+		croak("expected at least %d bytes", *plength);
 	}
 
-	type = payload[payload_length];
+	*type = payload[*plength];
 
 	if(rest != NULL) {
-		if(encoded + length > payload + payload_length + 1) {
-			*rest = payload + payload_length + 1;
+		if(encoded + length > payload + *plength + 1) {
+			*rest = payload + *plength + 1;
 		} else {
 			*rest = NULL;
 		}
 	}
 
+	return payload;
+}
+
+static SV *
+tn_decode(char *const encoded, STRLEN length, char **rest)
+{
+	char *payload;
+	STRLEN payload_length;
+	enum tn_type type;
+
+	payload = tn_lex(encoded, length, &payload_length, &type, rest);
 	return tn_decode_payload(payload, payload_length, type);
 }
 
@@ -213,6 +224,20 @@ tn_decode_payload(char *const encoded, STRLEN length, enum tn_type type)
 	return decoded;
 }
 
+static char *
+tn_decode_string(char *const encoded, STRLEN length, STRLEN *strlength, char **rest)
+{
+	char *payload;
+	STRLEN payload_length;
+	enum tn_type type;
+
+	payload = tn_lex(encoded, length, strlength, &type, rest);
+	if(type != tn_type_bytestring) {
+		croak("expected string");
+	}
+	return payload;
+}
+
 static SV *
 tn_decode_array(char *const encoded, STRLEN length)
 {
@@ -249,17 +274,16 @@ tn_decode_hash(char *const encoded, STRLEN length)
 	char *cursor = encoded;
 	char *end = encoded + length;
 	char *rest = NULL;
+	char *key = NULL;
+	STRLEN key_length = 0;
 	SV *decoded = newRV_noinc((SV *)newHV());
 	HV *hash = (HV *)SvRV(decoded);
-	SV *key = NULL;
 	SV *value = NULL;
 
 	while(cursor <= end) {
-		key = tn_decode(cursor, length, &rest);
+		key = tn_decode_string(cursor, length, &key_length, &rest);
 		if(key == NULL) {
 			croak("expected hash key but got \"%s\"", cursor);
-		} else if(SvROK(key)) {
-			croak("hash keys must be strings");
 		}
 
 		if(rest != NULL) {
@@ -273,13 +297,10 @@ tn_decode_hash(char *const encoded, STRLEN length)
 		if(value == NULL) {
 			croak("expected hash value but got \"%s\"", cursor);
 		}
-		/* Hash takes ownership of value but not key. The value
-		 * refcount must be decremented if storing fails. The
-		 * key's refcount must always be decremented. */
-		if(!hv_store_ent(hash, key, value, 0)) {
+		/* The value refcount must be decremented if storing fails. */
+		if(!hv_store(hash, key, (I32)key_length, value, 0)) {
 			SvREFCNT_dec(value);
 		}
-		SvREFCNT_dec(key);
 		if(rest != NULL) {
 			length = length - (rest - cursor);
 			cursor = rest;
@@ -289,6 +310,7 @@ tn_decode_hash(char *const encoded, STRLEN length)
 
 		key = NULL;
 		value = NULL;
+		key_length = 0;
 	}
 
 	return decoded;
