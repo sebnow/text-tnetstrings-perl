@@ -2,6 +2,7 @@ package Text::TNetstrings::PP;
 use strict;
 use warnings;
 use Carp qw(croak);
+use Scalar::Util qw(blessed);
 use base qw(Exporter);
 
 =head1 NAME
@@ -56,6 +57,9 @@ sub encode_tnetstrings {
 			$encoded .= encode_tnetstrings($value);
 		}
 		$type = '}';
+	} elsif(blessed($data) && $data->isa('boolean')) {
+		$encoded = $data ? 'true' : 'false';
+		$type = '!';
 	} elsif(!defined($data)) {
 		$encoded = '';
 		$type = '~';
