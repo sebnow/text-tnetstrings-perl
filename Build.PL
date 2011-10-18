@@ -16,7 +16,7 @@ my $builder = Module::Build->new(
 		'Test::More' => 0,
 	},
 	requires => {
-		'perl'         => 5.006,
+		'perl'         => 5.008,
 		'version'      => '>=0.77',
 		'Scalar::Util' => 0,
 	},
