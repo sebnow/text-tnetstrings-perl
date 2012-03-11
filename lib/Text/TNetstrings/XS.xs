@@ -139,7 +139,7 @@ tn_encode_hash(SV *data, struct tn_buffer *buf)
 	SV *key;
 
 	hv_iterinit(hash);
-	while(entry = hv_iternext(hash)) {
+	while((entry = hv_iternext(hash))) {
 		key = hv_iterkeysv(entry);
 		SvPOK_on(key);
 		tn_encode(hv_iterval(hash, entry), buf);
