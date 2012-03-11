@@ -38,7 +38,7 @@ static int tn_buffer_puts(struct tn_buffer *buf, char *str, STRLEN len);
 /* Prepend number at the beginning of the buffer */
 static int tn_buffer_puti(struct tn_buffer *buf, size_t i);
 /* Allocate enough memory to accomodate an additional n bytes */
-static int tn_buffer_expand(struct tn_buffer *buf, size_t n);
+static void tn_buffer_expand(struct tn_buffer *buf, size_t n);
 /* Return the length of the buffer */
 static STRLEN tn_buffer_length(struct tn_buffer *buf);
 /* Finalize the buffer and return the resulting scalar. This will move
@@ -342,7 +342,7 @@ tn_buffer_init(struct tn_buffer *buf, size_t size)
 	return 1;
 }
 
-static int
+static void
 tn_buffer_expand(struct tn_buffer *buf, size_t n)
 {
 	struct tn_buffer old;
