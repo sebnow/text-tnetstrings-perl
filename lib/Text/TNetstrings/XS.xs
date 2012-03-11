@@ -238,7 +238,6 @@ static char *
 tn_decode_string(char *const encoded, STRLEN length, STRLEN *strlength, char **rest)
 {
 	char *payload;
-	STRLEN payload_length;
 	enum tn_type type;
 
 	payload = tn_lex(encoded, length, strlength, &type, rest);
