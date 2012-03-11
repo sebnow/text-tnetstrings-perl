@@ -1,0 +1,11 @@
+\.c$
+\.gitignore$
+\.o$
+^.git
+^Build$
+^MANIFEST\.SKIP$
+^MYMETA\.json$
+^MYMETA\.yml$
+^_build
+^blib
+~$
