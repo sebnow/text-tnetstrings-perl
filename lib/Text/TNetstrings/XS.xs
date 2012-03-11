@@ -445,7 +445,7 @@ TN_encode_tnetstrings(data)
 	OUTPUT:
 		RETVAL
 
-SV *
+void
 TN_decode_tnetstrings(encoded)
 	SV *encoded
 	PREINIT:
