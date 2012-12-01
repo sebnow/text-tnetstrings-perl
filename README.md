@@ -1,9 +1,11 @@
-Text::TNetstrings
+Text::TNetstrings [![Build Status][cibadge]][ci]
 =================
 
 The library provides an implementation of the TNetstrings serialization
 format.
 
+[ci]:      https://travis-ci.org/sebnow/text-tnetstrings-perl
+[cibadge]: https://travis-ci.org/sebnow/text-tnetstrings-perl.png?branch=master
 
 Usage
 =====
