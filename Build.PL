@@ -7,7 +7,7 @@ use Module::Build;
 my $builder = Module::Build->new(
 	module_name          => 'Text::TNetstrings',
 	license              => 'mit',
-	extra_compiler_flags => qw(-Werror -Wall),
+	extra_compiler_flags => [qw(-Werror -Wall)],
 	extra_linker_flags   => ['-lm'],
 	use_tap_harness      => 1,
 	configure_requires => {
