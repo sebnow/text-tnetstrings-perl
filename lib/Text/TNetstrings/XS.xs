@@ -167,7 +167,7 @@ tn_lex(char *const encoded, STRLEN length, STRLEN *plength, enum tn_type *type, 
 	payload++;
 	/* Check if string is truncated */
 	if(payload + *plength >= encoded + length) {
-		croak("expected at least %d bytes", *plength);
+		croak("expected at least %zd bytes", *plength);
 	}
 
 	*type = payload[*plength];
