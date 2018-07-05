@@ -44,6 +44,7 @@ our %EXPORT_TAGS = (
 );
 
 sub encode_tnetstrings {
+	use bytes;
 	my $data = shift;
 	my ($encoded, $type);
 

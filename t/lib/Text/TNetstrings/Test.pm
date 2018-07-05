@@ -1,5 +1,6 @@
 package Text::TNetstrings::Test;
 use base qw(Test::Class);
+use Encode qw(encode_utf8);
 use Test::More;
 
 sub test_use : Test(startup => 1) {
@@ -44,16 +45,18 @@ sub test_encode_boolean : Tests(4) {
 }
 
 sub test_encode_string : Tests(4) {
-	my $string = "hello";
+	use utf8;
+	my $string = "héllö";
 	my $encoded = encode_tnetstrings($string);
 	my $given = qq(Given a string "$string", when the string is encoded, );
 	isnt($encoded, undef, $given .
 		"then the result should be defined");
 	$encoded =~ m/^(\d+):(.*)(.)$/;
 	my ($length, $data, $type) = ($1, $2, $3);
+	use bytes;
 	is($length, length($string), $given .
 		"then the length should be " . length($string));
-	is($data, $string, $given .
+	is($data, encode_utf8($string), $given .
 		"then the data field should be the same as the string");
 	is($type, ',', $given .
 		"then the type indicator should be ','");
